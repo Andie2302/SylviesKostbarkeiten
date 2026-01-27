@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using SylviesKostbarkeiten.models;
 
 namespace SylviesKostbarkeiten.io;
 
@@ -7,35 +8,29 @@ public class MenueParser
 {
     private static readonly CultureInfo GermanCulture = new CultureInfo("de-AT");
 
-    public List<Kassengruppe> Parse(string filePath)
+    public List<KassenGruppenInfo> Parse(string filePath)
     {
-        var gruppen = new List<Kassengruppe>();
-        // Nutze Encoding.Latin1 oder UTF8, je nachdem was die Kasse ausspuckt
+        var gruppen = new List<KassenGruppenInfo>();
         var lines = File.ReadAllLines(filePath, Encoding.UTF8).Skip(1); 
         
-        Kassengruppe? aktuelleGruppe = null;
+        KassenGruppenInfo? aktuelleGruppe = null;
 
         foreach (var line in lines)
         {
             if (string.IsNullOrWhiteSpace(line)) continue;
 
-            // Zerlegen, aber Anführungszeichen ignorieren
             var p = line.Split(';').Select(s => s.Trim('"')).ToArray();
 
-            // Fall 1: Neue Gruppe (GROUP_NAME an Index 0 vorhanden)
             if (!string.IsNullOrEmpty(p[0]))
             {
-                aktuelleGruppe = new Kassengruppe(
-                    Name: p[0],
+                aktuelleGruppe = new KassenGruppenInfo(Name: p[0],
                     Id: p[1],
                     Color: p[2],
                     Active: p[3] == "1",
-                    Printer: p[4],
-                    Artikel: new List<KassenArtikel>()
+                    PrinterId: p[4], Artikel: new List<KassenArtikelInfo>()
                 );
                 gruppen.Add(aktuelleGruppe);
             }
-            // Fall 2: Artikelzeile (Erste 5 Spalten leer, ARTICLE_NAME_LONG vorhanden)
             else if (aktuelleGruppe != null && !string.IsNullOrEmpty(p[5]))
             {
                 aktuelleGruppe.Artikel.Add(MapToArtikel(p));
@@ -44,10 +39,9 @@ public class MenueParser
         return gruppen;
     }
 
-    private KassenArtikel MapToArtikel(string[] p)
+    private KassenArtikelInfo MapToArtikel(string[] p)
     {
-        return new KassenArtikel(
-            NameLong: p[5],
+        return new KassenArtikelInfo(NameLong: p[5],
             NameShort: p[6],
             Id: p[7],
             Color: p[8],
