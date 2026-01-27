@@ -5,7 +5,6 @@ Console.WriteLine("Lese Kassen-Menü ein...");
 
 var menueDateiPfad = Tools.GetDesktopDatei("quelle.csv");
 
-
 var gruppen = Tools.LeseMenueDatei(menueDateiPfad);
 foreach (var gruppe in gruppen)
 {
@@ -17,29 +16,14 @@ foreach (var gruppe in gruppen)
 }
 
 
-// 1. Preise erhöhen (z.B. um 5%)
-decimal erhoehungProzent = 5m;
+var erhoehungProzent = 21m;
 var angepassteGruppen = gruppen.Select(g => g with 
 {
-    Artikel = g.Artikel.Select(a => 
-    {
-        // Nur erhöhen, wenn MwSt > 0
-        if (a.Vat > 0)
-        {
-            decimal neuerPreis = a.Price * (1 + erhoehungProzent / 100);
-            // Kaufmännisch runden auf 2 Dezimalstellen
-            neuerPreis = Math.Round(neuerPreis, 2, MidpointRounding.AwayFromZero);
-            return a with { Price = neuerPreis };
-        }
-        return a;
-    }).ToList()
+    Artikel = Tools.ErhöhePreisUm(g, erhoehungProzent)
 }).ToList();
-
-// 2. Exportieren in eine neue Datei
 
 var exportPfad = Tools.GetDesktopDatei("quelle_neu.csv");
 var exportInhalt = new List<string>();
-// Header hinzufügen
 exportInhalt.Add("GROUP_NAME;GROUP_ID;GROUP_COLOR;GROUP_ACTIVE;GROUP_PRINTER_ID;ARTICLE_NAME_LONG;ARTICLE_NAME_SHORT;ARTICLE_ID;ARTICLE_COLOR;ARTICLE_EMPTY_ITEM;ARTICLE_PRICE;ARTICLE_VAT;ARTICLE_IMMEDIATE_EDIT;ARTICLE_IMMEDIATE_FIELD;ARTICLE_ACCOUNT_NUMBER;ARTICLE_ARTICLE_NUMBER;ARTICLE_EAN_CODE;ARTICLE_PRINTER_ID;ARTICLE_EXTRA_IDS;ARTICLE_FAVORITE;ARTICLE_FAVORITE_INDEX;ARTICLE_FAVORITE_COLOR");
 
 foreach (var gruppe in angepassteGruppen)
