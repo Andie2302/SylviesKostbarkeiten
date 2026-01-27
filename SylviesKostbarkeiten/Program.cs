@@ -54,13 +54,16 @@ if (File.Exists(verkaufsDateiPfad))
     
     foreach (var monat in monatsAuswertung)
     {
+        
+        SteueberaterTools.GeneriereSteuerberaterExport(monat.Key.Year, monat.Key.Month, monat.ToList());
+        
         // Monatstitel erstellen (z.B. "August 2025")
-        string monatAnzeige = new DateTime(monat.Key.Year, monat.Key.Month, 1)
+        var monatAnzeige = new DateTime(monat.Key.Year, monat.Key.Month, 1)
             .ToString("MMMM yyyy", new CultureInfo("de-AT"));
 
         // Berechnungen für den Monat
-        decimal gesamtBrutto = monat.Sum(v => v.Brutto);
-        decimal gesamtNetto = monat.Sum(v => v.Netto);
+        var gesamtBrutto = monat.Sum(v => v.Brutto);
+        var gesamtNetto = monat.Sum(v => v.Netto);
     
         // MwSt nach Sätzen aufteilen
         var mwst10 = monat.Where(v => v.MwStSatz == 10).Sum(v => v.MwStEuro);
@@ -69,7 +72,7 @@ if (File.Exists(verkaufsDateiPfad))
         // Andere Sätze (z.B. 0% bei Gutscheinen oder 13%) falls vorhanden
         var mwstAndere = monat.Where(v => v.MwStSatz != 10 && v.MwStSatz != 20).Sum(v => v.MwStEuro);
 
-        int anzahlBelege = monat.Select(v => v.BelegNr).Distinct().Count();
+        var anzahlBelege = monat.Select(v => v.BelegNr).Distinct().Count();
 
         // Schöne Ausgabe
         Console.WriteLine($"\n>> {monatAnzeige.ToUpper()} <<");
