@@ -7,4 +7,6 @@ public record KassenGruppenInfo(
     bool Active,
     string PrinterId,
     List<KassenArtikelInfo> Artikel
-);
+){
+    public string ToCsvLine() => $"{Name};{Id};{Color};{(Active ? "1" : "0")};{PrinterId};;;;;;;;;;;;;;;;;";
+}
