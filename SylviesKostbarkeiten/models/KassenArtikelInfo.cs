@@ -19,7 +19,8 @@ public record KassenArtikelInfo(
     string ExtraIds,
     bool Favorite,
     int FavoriteIndex,
-    string FavoriteColor
+    string FavoriteColor,
+    string GroupName
 ){
     public string ToCsvLine()
     {
