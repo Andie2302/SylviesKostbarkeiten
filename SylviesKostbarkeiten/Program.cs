@@ -13,7 +13,11 @@ if (File.Exists(dateiPfad))
     var gruppen = parser.Parse(dateiPfad);
     foreach (var gruppe in gruppen)
     {
-        Console.WriteLine($"Gruppe: {gruppe.Name} mit {gruppe.Artikel.Count} Artikeln.");
+        Console.WriteLine($"\nGruppe: {gruppe.Name} (ID: {gruppe.Id})");
+        foreach (var artikel in gruppe.Artikel.Take(2))
+        {
+            Console.WriteLine($"  - {artikel.NameLong}: {artikel.Price:C2}");
+        }
     }
 }
 else
