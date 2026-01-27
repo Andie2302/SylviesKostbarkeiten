@@ -16,7 +16,7 @@ foreach (var gruppe in gruppen)
 }
 
 
-var erhoehungProzent = 5m;
+var erhoehungProzent = 3m;
 var angepassteGruppen = gruppen.Select(g => g with 
 {
     Artikel = Tools.ErhöhePreisUm(g, erhoehungProzent)
