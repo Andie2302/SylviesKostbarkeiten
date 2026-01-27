@@ -1,36 +1,84 @@
-﻿using System.Text;
+﻿
+using System.Globalization;
 using SylviesKostbarkeiten;
+using SylviesKostbarkeiten.io;
 
-Console.WriteLine("Lese Kassen-Menü ein...");
+Console.WriteLine("Hello World!");
 
-var menueDateiPfad = Tools.GetDesktopDatei("quelle.csv");
+//MenüTools.Preisanpassung("quelle.csv", "quelle_neu.csv", 3m);
 
-var gruppen = Tools.LeseMenueDatei(menueDateiPfad);
-foreach (var gruppe in gruppen)
+
+
+// ... Dein bisheriger Code für das Kassen-Menü ...
+
+Console.WriteLine("\n--- Teste Verkaufsparser ---");
+
+// 1. Pfad zur Verkaufsdatei (passe den Dateinamen an deine Datei an)
+var verkaufsDateiPfad = Tools.GetDesktopDatei("verkaeufe.csv");
+
+if (File.Exists(verkaufsDateiPfad))
 {
-    Console.WriteLine($"\nGruppe: {gruppe.Name} (ID: {gruppe.Id})");
-    foreach (var artikel in gruppe.Artikel.Take(2))
+    // 2. Parser instanziieren und Datei einlesen
+    var verkaufsParser = new VerkaufsParser();
+    var verkaufsDaten = verkaufsParser.Parse(verkaufsDateiPfad);
+
+    Console.WriteLine($"Erfolgreich {verkaufsDaten.Count} Verkaufspositionen eingelesen.");
+
+
+    //##################
+
+
+// ... nach dem Einlesen der verkaufsDaten ...
+
+    Console.WriteLine("\n--- Monatsstatistik ---");
+
+// 1. Daten nach Jahr und Monat gruppieren
+    var monatsAuswertung = verkaufsDaten
+        .Where(v => v.Brutto > 0) // Nur echte Umsätze berücksichtigen
+        .GroupBy(v => new { v.Zeitstempel.Year, v.Zeitstempel.Month })
+        .OrderBy(g => g.Key.Year)
+        .ThenBy(g => g.Key.Month);
+
+    foreach (var monat in monatsAuswertung)
     {
-        Console.WriteLine($"  - {artikel.NameLong}: {artikel.Price:C2}");
+        // Monatstitel erstellen (z.B. "August 2025")
+        var monatAnzeige = new DateTime(monat.Key.Year, monat.Key.Month, 1)
+            .ToString("MMMM yyyy", new CultureInfo("de-AT"));
+
+        var monatsUmsatz = monat.Sum(v => v.Brutto);
+        var anzahlBelege = monat.Select(v => v.BelegNr).Distinct().Count();
+        var anzahlPositionen = monat.Count();
+
+        Console.WriteLine($"{monatAnzeige,-15}: {monatsUmsatz,10:C2} ({anzahlBelege} Belege, {anzahlPositionen} Artikel)");
     }
+    
+    foreach (var monat in monatsAuswertung)
+    {
+        // Monatstitel erstellen (z.B. "August 2025")
+        string monatAnzeige = new DateTime(monat.Key.Year, monat.Key.Month, 1)
+            .ToString("MMMM yyyy", new CultureInfo("de-AT"));
+
+        // Berechnungen für den Monat
+        decimal gesamtBrutto = monat.Sum(v => v.Brutto);
+        decimal gesamtNetto = monat.Sum(v => v.Netto);
+    
+        // MwSt nach Sätzen aufteilen
+        var mwst10 = monat.Where(v => v.MwStSatz == 10).Sum(v => v.MwStEuro);
+        var mwst20 = monat.Where(v => v.MwStSatz == 20).Sum(v => v.MwStEuro);
+    
+        // Andere Sätze (z.B. 0% bei Gutscheinen oder 13%) falls vorhanden
+        var mwstAndere = monat.Where(v => v.MwStSatz != 10 && v.MwStSatz != 20).Sum(v => v.MwStEuro);
+
+        int anzahlBelege = monat.Select(v => v.BelegNr).Distinct().Count();
+
+        // Schöne Ausgabe
+        Console.WriteLine($"\n>> {monatAnzeige.ToUpper()} <<");
+        Console.WriteLine($"   Belege: {anzahlBelege,5} | Brutto: {gesamtBrutto,10:C2}");
+        Console.WriteLine($"   -----------------------------------------");
+        Console.WriteLine($"   MwSt 10%: {mwst10,10:C2}");
+        Console.WriteLine($"   MwSt 20%: {mwst20,10:C2}");
+        if (mwstAndere > 0) Console.WriteLine($"   MwSt Sonst: {mwstAndere,8:C2}");
+        Console.WriteLine($"   Netto Ges: {gesamtNetto,10:C2}");
+    }
+    
 }
-
-
-var erhoehungProzent = 3m;
-var angepassteGruppen = gruppen.Select(g => g with 
-{
-    Artikel = Tools.ErhöhePreisUm(g, erhoehungProzent)
-}).ToList();
-
-var exportPfad = Tools.GetDesktopDatei("quelle_neu.csv");
-var exportInhalt = new List<string>();
-exportInhalt.Add("GROUP_NAME;GROUP_ID;GROUP_COLOR;GROUP_ACTIVE;GROUP_PRINTER_ID;ARTICLE_NAME_LONG;ARTICLE_NAME_SHORT;ARTICLE_ID;ARTICLE_COLOR;ARTICLE_EMPTY_ITEM;ARTICLE_PRICE;ARTICLE_VAT;ARTICLE_IMMEDIATE_EDIT;ARTICLE_IMMEDIATE_FIELD;ARTICLE_ACCOUNT_NUMBER;ARTICLE_ARTICLE_NUMBER;ARTICLE_EAN_CODE;ARTICLE_PRINTER_ID;ARTICLE_EXTRA_IDS;ARTICLE_FAVORITE;ARTICLE_FAVORITE_INDEX;ARTICLE_FAVORITE_COLOR");
-
-foreach (var gruppe in angepassteGruppen)
-{
-    exportInhalt.Add(gruppe.ToCsvLine());
-    exportInhalt.AddRange(gruppe.Artikel.Select(artikel => artikel.ToCsvLine()));
-}
-
-File.WriteAllLines(exportPfad, exportInhalt, Encoding.UTF8);
-Console.WriteLine($"\nPreise wurden um {erhoehungProzent}% erhöht. Datei gespeichert unter: {exportPfad}");
