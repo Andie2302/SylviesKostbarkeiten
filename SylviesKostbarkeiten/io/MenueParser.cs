@@ -33,13 +33,13 @@ public class MenueParser
             }
             else if (aktuelleGruppe != null && !string.IsNullOrEmpty(p[5]))
             {
-                aktuelleGruppe.Artikel.Add(MapToArtikel(p));
+                aktuelleGruppe.Artikel.Add(MapToArtikel(p, aktuelleGruppe.Name));
             }
         }
         return gruppen;
     }
 
-    private KassenArtikelInfo MapToArtikel(string[] p)
+    private KassenArtikelInfo MapToArtikel(string[] p,string gruppenName)
     {
         return new KassenArtikelInfo(NameLong: p[5],
             NameShort: p[6],
@@ -57,7 +57,8 @@ public class MenueParser
             ExtraIds: p[18],
             Favorite: p[19] == "1",
             FavoriteIndex: int.TryParse(p[20], out var idx) ? idx : 0,
-            FavoriteColor: p[21]
+            FavoriteColor: p[21],
+            GroupName: gruppenName
         );
     }
 
