@@ -1,26 +1,52 @@
-﻿using SylviesKostbarkeiten.io;
+﻿using System.Text;
+using SylviesKostbarkeiten;
 
 Console.WriteLine("Lese Kassen-Menü ein...");
 
-string desktopPfad = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+var menueDateiPfad = Tools.GetDesktopDatei("quelle.csv");
 
-string dateiPfad = Path.Combine(desktopPfad, "quelle.csv");
 
-var parser = new MenueParser();
-
-if (File.Exists(dateiPfad))
+var gruppen = Tools.LeseMenueDatei(menueDateiPfad);
+foreach (var gruppe in gruppen)
 {
-    var gruppen = parser.Parse(dateiPfad);
-    foreach (var gruppe in gruppen)
+    Console.WriteLine($"\nGruppe: {gruppe.Name} (ID: {gruppe.Id})");
+    foreach (var artikel in gruppe.Artikel.Take(2))
     {
-        Console.WriteLine($"\nGruppe: {gruppe.Name} (ID: {gruppe.Id})");
-        foreach (var artikel in gruppe.Artikel.Take(2))
-        {
-            Console.WriteLine($"  - {artikel.NameLong}: {artikel.Price:C2}");
-        }
+        Console.WriteLine($"  - {artikel.NameLong}: {artikel.Price:C2}");
     }
 }
-else
+
+
+// 1. Preise erhöhen (z.B. um 5%)
+decimal erhoehungProzent = 5m;
+var angepassteGruppen = gruppen.Select(g => g with 
 {
-    Console.WriteLine($"Datei nicht gefunden unter: {dateiPfad}");
+    Artikel = g.Artikel.Select(a => 
+    {
+        // Nur erhöhen, wenn MwSt > 0
+        if (a.Vat > 0)
+        {
+            decimal neuerPreis = a.Price * (1 + erhoehungProzent / 100);
+            // Kaufmännisch runden auf 2 Dezimalstellen
+            neuerPreis = Math.Round(neuerPreis, 2, MidpointRounding.AwayFromZero);
+            return a with { Price = neuerPreis };
+        }
+        return a;
+    }).ToList()
+}).ToList();
+
+// 2. Exportieren in eine neue Datei
+
+var exportPfad = Tools.GetDesktopDatei("quelle_neu.csv");
+var exportInhalt = new List<string>();
+// Header hinzufügen
+exportInhalt.Add("GROUP_NAME;GROUP_ID;GROUP_COLOR;GROUP_ACTIVE;GROUP_PRINTER_ID;ARTICLE_NAME_LONG;ARTICLE_NAME_SHORT;ARTICLE_ID;ARTICLE_COLOR;ARTICLE_EMPTY_ITEM;ARTICLE_PRICE;ARTICLE_VAT;ARTICLE_IMMEDIATE_EDIT;ARTICLE_IMMEDIATE_FIELD;ARTICLE_ACCOUNT_NUMBER;ARTICLE_ARTICLE_NUMBER;ARTICLE_EAN_CODE;ARTICLE_PRINTER_ID;ARTICLE_EXTRA_IDS;ARTICLE_FAVORITE;ARTICLE_FAVORITE_INDEX;ARTICLE_FAVORITE_COLOR");
+
+foreach (var gruppe in angepassteGruppen)
+{
+    exportInhalt.Add(gruppe.ToCsvLine());
+    exportInhalt.AddRange(gruppe.Artikel.Select(artikel => artikel.ToCsvLine()));
 }
+
+File.WriteAllLines(exportPfad, exportInhalt, Encoding.UTF8);
+Console.WriteLine($"\nPreise wurden um {erhoehungProzent}% erhöht. Datei gespeichert unter: {exportPfad}");
