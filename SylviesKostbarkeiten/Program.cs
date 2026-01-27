@@ -100,4 +100,6 @@ if (File.Exists(verkaufsDateiPfad))
 
 // Ganz am Ende der Program.cs
     AnalyseTools.GeneriereManagementBericht(verkaufsDaten);
+    
+    
 }
