@@ -35,9 +35,9 @@ public static class SteueberaterTools
         var row = 4;
         var anfangsbestand = 160.0m; // Fixwert aus Sylvies Vorlage
 
-        var summeTageslosung = 0m;
-        var summeWert20 = 0m;
-        var summeWert10 = 0m;
+        var gesamtBruttoMonat = 0m;
+        var gesamtBrutto20 = 0m;
+        var gesamtBrutto10 = 0m;
         foreach (var tag in tagesGruppen)
         {
             decimal losung = tag.Sum(v => v.Brutto);
@@ -46,13 +46,13 @@ public static class SteueberaterTools
             ws1.Cell(row, 2).Value = anfangsbestand;
             ws1.Cell(row, 3).Value = anfangsbestand + losung;
             ws1.Cell(row, 4).Value = losung;
-            summeTageslosung += losung;
+            gesamtBruttoMonat += losung;
 
             // KORREKTUR: Hier den Brutto-Umsatz pro Steuersatz summieren, nicht nur die MwSt
             var wert20 = tag.Where(v => v.MwStSatz == 20).Sum(v => v.Brutto);
             var wert10 = tag.Where(v => v.MwStSatz == 10).Sum(v => v.Brutto);
-            summeWert20 += wert20;
-            summeWert10 += wert10;
+            gesamtBrutto20 += wert20;
+            gesamtBrutto10 += wert10;
             ws1.Cell(row, 5).Value = wert20;
             ws1.Cell(row, 6).Value = wert10;
     
@@ -64,13 +64,72 @@ public static class SteueberaterTools
             //Format ENDE
             
             row++;
+            
+            
+            
         }
+        
+        
+        
+        // Nach der Schleife, die die Tage schreibt (Variable 'row' ist am Ende der Tabelle)
+        row++; // Eine Leerzeile lassen
+
+// Summen-Zeile (Σ)
         ws1.Cell(row, 3).Value = "Σ";
-        ws1.Cell(row, 4).Value = summeTageslosung;
-        ws1.Cell(row, 5).Value = summeWert20;
-        ws1.Cell(row, 6).Value = summeWert10;
+        ws1.Cell(row, 4).Value = gesamtBruttoMonat; // Summe Spalte Tageslosung
+        ws1.Cell(row, 5).Value = gesamtBrutto20;    // Summe Spalte 20%
+        ws1.Cell(row, 6).Value = gesamtBrutto10;    // Summe Spalte 10%
+        ws1.Range(row, 4, row, 6).Style.Font.Bold = true;
+        
+        //Format START
         for(var i=4;i<7;i++)
             ws1.Cell(row, i).Style.NumberFormat.Format = "#,##0.00 €";
+        //Format ENDE
+        
+        row += 2; // Wieder eine Leerzeile
+
+// Netto-Berechnung
+        decimal netto20 = Math.Round(gesamtBrutto20 / 1.2m, 2);
+        decimal netto10 = Math.Round(gesamtBrutto10 / 1.1m, 2);
+
+        ws1.Cell(row, 3).Value = "Netto";
+        ws1.Cell(row, 4).Value = "=";
+        ws1.Cell(row, 5).Value = netto20;
+        ws1.Cell(row, 6).Value = netto10;
+        //Format START
+        for(var i=5;i<7;i++)
+            ws1.Cell(row, i).Style.NumberFormat.Format = "#,##0.00 €";
+        //Format ENDE
+        row += 2;
+
+// MwSt Ausweis
+        decimal mwst20 = Math.Round(netto20 * 0.2m, 2);
+        decimal mwst10 = Math.Round(netto10 * 0.1m, 2);
+
+        ws1.Cell(row, 2).Value = "10% von";
+        ws1.Cell(row, 3).Value = netto10;
+        ws1.Cell(row, 4).Value = "=";
+        ws1.Cell(row, 5).Value = mwst10;
+        ws1.Cell(row, 3).Style.NumberFormat.Format = "#,##0.00 €";
+        ws1.Cell(row, 5).Style.NumberFormat.Format = "#,##0.00 €";
+        row++;
+
+        ws1.Cell(row, 2).Value = "20% von";
+        ws1.Cell(row, 3).Value = netto20;
+        ws1.Cell(row, 4).Value = "=";
+        ws1.Cell(row, 5).Value = mwst20;
+        ws1.Cell(row, 3).Style.NumberFormat.Format = "#,##0.00 €";
+        ws1.Cell(row, 5).Style.NumberFormat.Format = "#,##0.00 €";
+        row++;
+
+// Gesamtsumme Steuer
+        ws1.Cell(row, 5).Value = mwst10 + mwst20;
+        ws1.Cell(row, 5).Style.Border.TopBorder = XLBorderStyleValues.Thin;
+        ws1.Cell(row, 5).Style.Font.Bold = true;
+        ws1.Cell(row, 5).Style.NumberFormat.Format = "#,##0.00 €";
+
+        
+        
         
         // --- BLATT 2: KÜCHENUMSÄTZE ---
         var ws2 = workbook.Worksheets.Add("Küchenumsätze 10%");
