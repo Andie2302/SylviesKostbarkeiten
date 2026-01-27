@@ -27,7 +27,7 @@ public class MenueParser
                     Id: p[1],
                     Color: p[2],
                     Active: p[3] == "1",
-                    PrinterId: p[4], Artikel: new List<KassenArtikelInfo>()
+                    PrinterId: p[4], Artikel: []
                 );
                 gruppen.Add(aktuelleGruppe);
             }
