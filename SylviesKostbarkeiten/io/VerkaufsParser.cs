@@ -6,7 +6,7 @@ namespace SylviesKostbarkeiten.io;
 
 public class VerkaufsParser
 {
-    private static readonly CultureInfo GermanCulture = new CultureInfo("de-AT");
+    private static readonly CultureInfo GermanCulture = new("de-AT");
     public List<VerkaufsPositionInfo> Parse(string filePath)
     {
         var lines = File.ReadAllLines(filePath, Encoding.UTF8).Skip(1);
