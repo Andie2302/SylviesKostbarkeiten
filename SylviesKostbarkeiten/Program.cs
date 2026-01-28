@@ -1,6 +1,9 @@
 ﻿using System.Globalization;
+using QuestPDF.Infrastructure;
 using SylviesKostbarkeiten;
 using SylviesKostbarkeiten.io;
+
+QuestPDF.Settings.License = LicenseType.Community;
 
 Console.WriteLine("Hello World!");
 
@@ -102,4 +105,27 @@ if (File.Exists(verkaufsDateiPfad))
     AnalyseTools.GeneriereManagementBericht(verkaufsDaten);
     
     
+    
+
+
+// 1. Menü einlesen
+var menueParser = new MenueParser();
+var alleArtikel = menueParser.Parse("Fertig.csv")
+    .SelectMany(g => g.Artikel)
+    .Where(a => a.Price > 0m && !string.IsNullOrWhiteSpace(a.GroupName))
+    .ToList();
+
+// 2. Filter einbauen
+// Wir wollen auf der Speisekarte keine "Trenner" (Preis 0,00) 
+// und keine Artikel ohne Gruppennamen sehen.
+
+
+Console.WriteLine("Generiere Speisekarte als PDF...");
+
+// Aufruf der Methode
+var kartenTool = new KartenTool();
+kartenTool.ErstelleSpeisekarte(alleArtikel);
+
+Console.WriteLine("Speisekarte wurde unter 'Speisekarte_Neu.pdf' gespeichert.");
+
 }
