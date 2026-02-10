@@ -1,8 +1,8 @@
-
-
 using System.Globalization;
 using ClosedXML.Excel;
 using SylviesKostbarkeiten.models;
+
+namespace SylviesKostbarkeiten;
 
 public static class AnalyseTools
 {
