@@ -115,7 +115,7 @@ var alleArtikel = menueParser.Parse("Fertig.csv")
     .Where(a => a.Price > 0m && !string.IsNullOrWhiteSpace(a.GroupName))
     .ToList();
 
-// 2. Filter einbauen
+// 2. Filter einbauen.
 // Wir wollen auf der Speisekarte keine "Trenner" (Preis 0,00) 
 // und keine Artikel ohne Gruppennamen sehen.
 
