@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use serde::Deserialize;
 use chrono::NaiveDateTime;
 
@@ -53,5 +54,33 @@ impl KassenBeleg {
     pub fn datum(&self) -> NaiveDateTime {
         NaiveDateTime::parse_from_str(&self.datum_raw, DATE_FORMAT)
             .unwrap_or_else(|_| unix_epoch())
+    }
+}
+impl PartialEq for KassenBeleg {
+    fn eq(&self, other: &Self) -> bool {
+        self.beleg_nr == other.beleg_nr
+    }
+}
+
+
+impl Eq for KassenBeleg {}
+
+
+impl Ord for KassenBeleg {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // Wir sortieren weiterhin nach Datum, damit die Liste chronologisch bleibt
+        let res = self.datum().cmp(&other.datum());
+
+        if res == Ordering::Equal {
+            // Wenn das Datum gleich ist, entscheidet die Belegnummer
+            return self.beleg_nr.cmp(&other.beleg_nr);
+        }
+        res
+    }
+}
+
+impl PartialOrd for KassenBeleg {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
