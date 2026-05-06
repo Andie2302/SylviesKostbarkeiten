@@ -6,3 +6,5 @@ edition = "2024"
 [dependencies]
 serde = { version = "1.0.228", features = ["derive"] }
 chrono = "0.4.44"
+walkdir = "2.5.0"
+zip = "9.0.0-pre1"
