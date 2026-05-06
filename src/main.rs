@@ -1,21 +1,42 @@
 use std::fs::File;
-use std::io::{BufRead, BufReader, Read};
+use std::io::Read;
 use std::path::Path;
 use walkdir::WalkDir;
 use zip::ZipArchive;
 
+// Importiere deine Module aus der Library
+use SylviesKostbarkeiten::beleg_map::BelegArchiv;
+use SylviesKostbarkeiten::csv_file;
+
 const CSV_EXTENSION: &str = "csv";
 const ZIP_EXTENSION: &str = "zip";
 const CSV_SUFFIX: &str = ".csv";
-use SylviesKostbarkeiten::csv_search;
 
 fn main() {
     let root_path = "/home/andreas/Schreibtisch/Sylvie/";
-    println!("--- Starting search in: {} ---", root_path);
-    csv_search::process_folder(root_path);
-    println!("--- Search complete ---");
+
+    // 1. Initialisiere das zentrale Archiv
+    let mut archiv = BelegArchiv::new();
+
+    println!("--- Starte Verarbeitung in: {} ---", root_path);
+
+    // 2. Starte die Suche und übergib das Archiv
+    process_folder(root_path, &mut archiv);
+
+    println!("--- Verarbeitung abgeschlossen ---\n");
+
+    // 3. Test-Ausgabe: Zeige alle Monate und die Anzahl der Belege
+    for (schluessel, liste) in archiv.alle_monate() {
+        let (jahr, monat) = schluessel;
+        println!("Monat {:02}/{}: {} Belege gefunden.", monat, jahr, liste.len());
+
+        // Optional: Summe berechnen
+        let summe: f64 = liste.into_iter().map(|b| b.brutto()).sum();
+        println!("  -> Gesamtumsatz (Brutto): {:.2} €", summe);
+    }
 }
-pub fn process_folder(root_path: &str) {
+
+pub fn process_folder(root_path: &str, archiv: &mut BelegArchiv) {
     for entry in WalkDir::new(root_path).into_iter().filter_map(|e| e.ok()) {
         let path = entry.path();
         if !path.is_file() {
@@ -24,51 +45,28 @@ pub fn process_folder(root_path: &str) {
 
         let extension = path.extension().and_then(|s| s.to_str());
         match extension {
-            Some(CSV_EXTENSION) => process_csv_file(path),
-            Some(ZIP_EXTENSION) => process_zip_file(path),
+            // Nutze die Funktionen aus csv_file.rs statt nur zu printen
+            Some(CSV_EXTENSION) => csv_file::process_csv_file(path, archiv),
+            Some(ZIP_EXTENSION) => process_zip_file(path, archiv),
             _ => {}
         }
     }
 }
 
-fn process_zip_file(path: &Path) {
-    println!("\n[ZIP] Searching in: {:?}", path);
-
-    let file = File::open(path).expect("Could not open ZIP file");
-    let mut archive = ZipArchive::new(file).expect("Invalid ZIP archive");
+fn process_zip_file(path: &Path, archiv: &mut BelegArchiv) {
+    let file = File::open(path).expect("ZIP konnte nicht geöffnet werden");
+    let mut archive = ZipArchive::new(file).expect("Ungültiges ZIP");
 
     for i in 0..archive.len() {
-        let mut entry = archive.by_index(i).expect("Error reading ZIP entry");
-        let entry_name = entry.name().expect("Invalid filename in ZIP").to_string();
+        let mut entry = archive.by_index(i).expect("Fehler beim ZIP-Eintrag");
+        let entry_name = entry.name().expect("Ungültiger Name").to_string();
 
         if entry_name.ends_with(CSV_SUFFIX) {
-            println!("  -> Found CSV in ZIP: {}", entry_name);
-
             let mut content = String::new();
             if entry.read_to_string(&mut content).is_ok() {
-                process_csv_content(&content);
+                // Nutze die Funktion für ZIP-Inhalte
+                csv_file::process_csv_content(&content, archiv);
             }
         }
     }
-}
-
-fn process_csv_file(path: &Path) {
-    println!("\n[CSV] Processing file: {:?}", path);
-
-    let file = File::open(path).expect("Could not open CSV file");
-    let reader = BufReader::new(file);
-
-    for line in reader.lines() {
-        if let Ok(line) = line {
-            println!("{}", line);
-        }
-    }
-}
-
-fn process_csv_content(content: &str) {
-    println!("--- CSV content from ZIP ---");
-    for line in content.lines() {
-        println!("{}", line);
-    }
-    println!("--- End of ZIP content ---");
 }
