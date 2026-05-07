@@ -3,7 +3,7 @@ use std::ops::Index;
 use chrono::Datelike;
 use crate::beleg::KassenBeleg;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct KassenBelegListe {
     belege: Vec<KassenBeleg>,
 }
@@ -40,12 +40,15 @@ impl KassenBelegListe {
             None
         }
     }
+
     pub fn clear(&mut self) {
         self.belege.clear();
     }
+
     pub fn sort(&mut self) {
         self.belege.sort_by(|a, b| a.datum().cmp(&b.datum()));
     }
+
     pub fn swap_remove(&mut self, index: usize) -> Option<KassenBeleg> {
         if index < self.belege.len() {
             Some(self.belege.swap_remove(index))
@@ -53,13 +56,57 @@ impl KassenBelegListe {
             None
         }
     }
+
+    // ── Berechnungen ────────────────────────────────────────────────────────────
+
+    /// Summe aller Brutto-Beträge.
+    pub fn gesamtbrutto(&self) -> f64 {
+        self.belege.iter().map(|b| b.brutto()).sum()
+    }
+
+    /// Summe aller Netto-Beträge.
+    pub fn gesamtnetto(&self) -> f64 {
+        self.belege.iter().map(|b| b.netto()).sum()
+    }
+
+    /// Berechnete MwSt-Summe (Brutto − Netto).
+    pub fn gesamtmwst_betrag(&self) -> f64 {
+        self.gesamtbrutto() - self.gesamtnetto()
+    }
+
+    // ── Filter ──────────────────────────────────────────────────────────────────
+
+    /// Gibt eine neue Liste zurück, die nur Belege mit dem angegebenen
+    /// MwSt-Satz enthält (z. B. `10.0` für 10 %).
+    /// Der Vergleich hat eine Toleranz von 0,01 Prozentpunkten.
+    pub fn filtere_nach_mwst(&self, prozent: f64) -> KassenBelegListe {
+        let gefiltert = self
+            .belege
+            .iter()
+            .filter(|b| (b.mwst() - prozent).abs() < 0.01)
+            .cloned()
+            .collect();
+
+        KassenBelegListe { belege: gefiltert }
+    }
+
+    /// Gibt alle vorkommenden MwSt-Sätze (dedupliziert, sortiert) zurück.
+    /// f64 implementiert kein Hash/Eq, daher manuell via sort + dedup.
+    pub fn vorhandene_mwst_saetze(&self) -> Vec<f64> {
+        let mut saetze: Vec<f64> = self.belege.iter().map(|b| b.mwst()).collect();
+        saetze.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        saetze.dedup_by(|a, b| (*a - *b).abs() < 0.01);
+        saetze
+    }
+
+    // ── Gruppierung ─────────────────────────────────────────────────────────────
+
     pub fn gruppiere_nach_monat(self) -> HashMap<(i32, u32), KassenBelegListe> {
         let mut map: HashMap<(i32, u32), KassenBelegListe> = HashMap::new();
 
         for beleg in self.belege {
             let d = beleg.datum();
             let key = (d.year(), d.month());
-
             map.entry(key)
                 .or_insert_with(KassenBelegListe::default)
                 .push(beleg);
