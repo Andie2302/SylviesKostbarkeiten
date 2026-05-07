@@ -6,6 +6,7 @@ use zip::ZipArchive;
 
 use SylviesKostbarkeiten::beleg_map::BelegArchiv;
 use SylviesKostbarkeiten::csv_file;
+use SylviesKostbarkeiten::xlsx_file::{CellValue, XlsxFile};
 
 const CSV_EXTENSION: &str = "csv";
 const ZIP_EXTENSION: &str = "zip";
@@ -76,6 +77,26 @@ fn main() {
             }
         }
     }
+
+    let mut xlsx = XlsxFile::new();
+
+    // Diese Variable hat gefehlt!
+    let rows = vec![
+        vec![CellValue::Text("Apfel"), CellValue::Integer(10), CellValue::Currency(1.99)],
+        vec![CellValue::Text("Birne"), CellValue::Integer(5), CellValue::Currency(2.49)],
+    ];
+
+    // Hier packen wir add_sheet direkt in den Aufruf:
+    xlsx.write_table(
+        xlsx.add_sheet("Bestellung").expect("Sheet Fehler"),
+        &["Produkt", "Menge", "Preis"],
+        &rows,
+        Some(&[20.0, 10.0, 15.0])
+    ).expect("Schreib Fehler");
+
+    xlsx.save("bestellung.xlsx").expect("Speicher Fehler");
+
+    println!("✅ Excel-Datei 'bestellung.xlsx' wurde erfolgreich erstellt!");
 }
 
 pub fn process_folder(root_path: &str, archiv: &mut BelegArchiv) {
