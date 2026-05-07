@@ -14,7 +14,7 @@ fn parse_german_number(number: &str) -> f64 {
     number.replace(',', ".").replace('%', "").parse().unwrap_or(0.0)
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct KassenBeleg {
     #[serde(rename = "Beleg Nr")]
     beleg_nr: String,
@@ -55,24 +55,32 @@ impl KassenBeleg {
         NaiveDateTime::parse_from_str(&self.datum_raw, DATE_FORMAT)
             .unwrap_or_else(|_| unix_epoch())
     }
+
+    /// Gibt einen lesbaren Zusammenfassungsstring zurück.
+    pub fn zusammenfassung(&self) -> String {
+        format!(
+            "[{}] {} | {} | {:.2} € brutto ({:.0}% MwSt.)",
+            self.datum().format("%d.%m.%Y %H:%M"),
+            self.beleg_nr,
+            self.artikel,
+            self.brutto(),
+            self.mwst(),
+        )
+    }
 }
+
 impl PartialEq for KassenBeleg {
     fn eq(&self, other: &Self) -> bool {
         self.beleg_nr == other.beleg_nr
     }
 }
 
-
 impl Eq for KassenBeleg {}
-
 
 impl Ord for KassenBeleg {
     fn cmp(&self, other: &Self) -> Ordering {
-        // Wir sortieren weiterhin nach Datum, damit die Liste chronologisch bleibt
         let res = self.datum().cmp(&other.datum());
-
         if res == Ordering::Equal {
-            // Wenn das Datum gleich ist, entscheidet die Belegnummer
             return self.beleg_nr.cmp(&other.beleg_nr);
         }
         res
